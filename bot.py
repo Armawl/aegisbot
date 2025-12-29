@@ -9,9 +9,8 @@ intents.members = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Liste des serveurs premium (mettre l'ID des serveurs qui paient)
 PREMIUM_SERVERS = [
-    # Exemple : 123456789012345678
+    123456789012345678  # ton server ID ici
 ]
 
 # Dictionnaire des mots interdits premium
