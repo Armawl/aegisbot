@@ -9,10 +9,12 @@ intents.members = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
+# Liste des serveurs premium
 PREMIUM_SERVERS = [
     # 123456789012345678
 ]
 
+# Dictionnaire des mots interdits premium
 premium_bad_words = {
     # server_id: ["badword1", "badword2"]
 }
@@ -21,7 +23,7 @@ premium_bad_words = {
 infractions = {}
 
 # Durées progressives des mutes en secondes
-MUTE_DURATIONS = [5, 30, 300, 1800, 10800, 86400]  # 5s,30s,5min,30min,3h,1j
+MUTE_DURATIONS = [5, 30, 300, 1800, 10800, 86400]  # 5s, 30s, 5min, 30min, 3h, 1j
 
 def is_premium(server_id):
     return server_id in PREMIUM_SERVERS
@@ -39,7 +41,7 @@ async def on_message(message):
     member = message.author
     content = message.content.lower()
 
-    # Supprimer le message si c'est un mot banni (premium)
+    # Supprimer le message si mot banni
     if is_premium(guild.id):
         bad_words = premium_bad_words.get(guild.id, [])
         if any(word in content for word in bad_words):
@@ -67,16 +69,29 @@ async def progressive_mute(member, guild):
             )
 
     await member.add_roles(muted_role)
-    await member.send(f"🔇 You have been muted for {duration} seconds due to banned words.")
     
+    # Message dans le salon
+    if guild.system_channel:
+        await guild.system_channel.send(
+            f"🔇 {member.mention} has been muted for {duration} seconds due to banned words."
+        )
+    
+    # Message privé
+    try:
+        await member.send(f"You have been muted for {duration} seconds due to banned words.")
+    except:
+        pass  # si DM fermé
+
     await asyncio.sleep(duration)
 
-    # Vérifie si le membre a encore le rôle (pas supprimé manuellement)
     if muted_role in member.roles:
         await member.remove_roles(muted_role)
-        await member.send("✅ You have been unmuted.")
+        try:
+            await member.send("✅ You have been unmuted.")
+        except:
+            pass
 
-# Commandes addword et removeword pour admins
+# Commandes admin pour ajouter/supprimer mots interdits
 @bot.command()
 @commands.has_permissions(administrator=True)
 async def addword(ctx, *, word):
@@ -91,13 +106,4 @@ async def addword(ctx, *, word):
 @commands.has_permissions(administrator=True)
 async def removeword(ctx, *, word):
     if not is_premium(ctx.guild.id):
-        await ctx.send("❌ This feature is premium only.")
-        return
-    bad_words = premium_bad_words.get(ctx.guild.id, [])
-    if word.lower() in bad_words:
-        bad_words.remove(word.lower())
-        await ctx.send(f"✅ Removed `{word}` from banned words.")
-    else:
-        await ctx.send(f"❌ `{word}` is not in the banned words list.")
-
-bot.run(os.getenv("DISCORD_TOKEN"))
+        await ctx.send("❌
