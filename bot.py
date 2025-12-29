@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 import os
 
+# Intents nécessaires pour lire les messages et gérer les rôles
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
@@ -10,7 +11,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 # Liste des serveurs premium (mettre l'ID des serveurs qui paient)
 PREMIUM_SERVERS = [
-    # 123456789012345678
+    # Exemple : 123456789012345678
 ]
 
 # Dictionnaire des mots interdits premium
@@ -18,16 +19,19 @@ premium_bad_words = {
     # server_id: ["badword1", "badword2"]
 }
 
-# Spam tracking
+# Tracking du spam (FREE)
 spam_counter = {}
 
+# Fonction pour vérifier si un serveur est premium
 def is_premium(server_id):
     return server_id in PREMIUM_SERVERS
 
+# Événement au démarrage
 @bot.event
 async def on_ready():
     print(f"AegisBot connected as {bot.user}")
 
+# Événement pour gérer les messages
 @bot.event
 async def on_message(message):
     if message.author.bot:
@@ -37,7 +41,7 @@ async def on_message(message):
     member = message.author
     content = message.content.lower()
 
-    # Auto-spam (FREE)
+    # Auto-spam (gratuit)
     user_id = member.id
     spam_counter.setdefault(user_id, 0)
     spam_counter[user_id] += 1
@@ -56,6 +60,7 @@ async def on_message(message):
 
     await bot.process_commands(message)
 
+# Fonction pour mute un utilisateur
 async def mute_user(message, reason):
     guild = message.guild
     member = message.author
@@ -75,6 +80,7 @@ async def mute_user(message, reason):
         f"🔇 {member.mention} has been muted ({reason})."
     )
 
+# Commande pour ajouter un mot interdit (admins only)
 @bot.command()
 @commands.has_permissions(administrator=True)
 async def addword(ctx, *, word):
@@ -85,7 +91,9 @@ async def addword(ctx, *, word):
     premium_bad_words.setdefault(ctx.guild.id, [])
     premium_bad_words[ctx.guild.id].append(word.lower())
     await ctx.send(f"✅ Added `{word}` to banned words.")
-    @bot.command()
+
+# Commande pour supprimer un mot interdit (admins only)
+@bot.command()
 @commands.has_permissions(administrator=True)
 async def removeword(ctx, *, word):
     if not is_premium(ctx.guild.id):
@@ -98,4 +106,6 @@ async def removeword(ctx, *, word):
         await ctx.send(f"✅ Removed `{word}` from banned words.")
     else:
         await ctx.send(f"❌ `{word}` is not in the banned words list.")
+
+# Démarrage du bot avec le token sécurisé
 bot.run(os.getenv("DISCORD_TOKEN"))
