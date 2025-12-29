@@ -14,13 +14,8 @@ PREMIUM_SERVERS = [
     1455308297770107055
 ]
 
-# Dictionnaire des mots interdits premium
 premium_bad_words = {}
-
-# Dictionnaire pour suivre les infractions par membre
 infractions = {}
-
-# Durées progressives des mutes en secondes
 MUTE_DURATIONS = [5, 30, 300, 1800, 10800, 86400]  # 5s, 30s, 5min, 30min, 3h, 1j
 
 def is_premium(server_id):
@@ -39,7 +34,6 @@ async def on_message(message):
     member = message.author
     content = message.content.lower()
 
-    # Supprimer le message si mot banni (premium)
     if is_premium(guild.id):
         bad_words = premium_bad_words.get(guild.id, [])
         if any(word in content for word in bad_words):
@@ -59,12 +53,22 @@ async def progressive_mute(member, guild):
     muted_role = discord.utils.get(guild.roles, name="Muted")
     if not muted_role:
         muted_role = await guild.create_role(name="Muted")
-        for channel in guild.channels:
+    
+    # Appliquer les permissions dans tous les salons
+    for channel in guild.channels:
+        try:
             await channel.set_permissions(
                 muted_role,
                 send_messages=False,
-                speak=False
+                speak=False,
+                add_reactions=False
             )
+        except:
+            pass  # ignore si le bot ne peut pas modifier ce salon
+
+    # Placer le rôle Muted juste sous le bot
+    bot_member = guild.get_member(bot.user.id)
+    await muted_role.edit(position=bot_member.top_role.position - 1)
 
     await member.add_roles(muted_role)
     
@@ -89,7 +93,7 @@ async def progressive_mute(member, guild):
         except:
             pass
 
-# Commande pour ajouter un mot banni (admin only)
+# Commandes admin
 @bot.command()
 @commands.has_permissions(administrator=True)
 async def addword(ctx, *, word):
@@ -101,7 +105,6 @@ async def addword(ctx, *, word):
     premium_bad_words[ctx.guild.id].append(word.lower())
     await ctx.send(f"✅ Added `{word}` to banned words.")
 
-# Commande pour supprimer un mot banni (admin only)
 @bot.command()
 @commands.has_permissions(administrator=True)
 async def removeword(ctx, *, word):
