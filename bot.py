@@ -1,8 +1,8 @@
 import discord
 from discord.ext import commands
 import os
+import asyncio
 
-# Intents nécessaires pour lire les messages et gérer les rôles
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
@@ -10,27 +10,26 @@ intents.members = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 PREMIUM_SERVERS = [
-    1455308297770107055  # ton server ID ici
+    # 123456789012345678
 ]
 
-# Dictionnaire des mots interdits premium
 premium_bad_words = {
     # server_id: ["badword1", "badword2"]
 }
 
-# Tracking du spam (FREE)
-spam_counter = {}
+# Dictionnaire pour suivre les infractions par membre
+infractions = {}
 
-# Fonction pour vérifier si un serveur est premium
+# Durées progressives des mutes en secondes
+MUTE_DURATIONS = [5, 30, 300, 1800, 10800, 86400]  # 5s,30s,5min,30min,3h,1j
+
 def is_premium(server_id):
     return server_id in PREMIUM_SERVERS
 
-# Événement au démarrage
 @bot.event
 async def on_ready():
     print(f"AegisBot connected as {bot.user}")
 
-# Événement pour gérer les messages
 @bot.event
 async def on_message(message):
     if message.author.bot:
@@ -40,29 +39,22 @@ async def on_message(message):
     member = message.author
     content = message.content.lower()
 
-    # Auto-spam (gratuit)
-    user_id = member.id
-    spam_counter.setdefault(user_id, 0)
-    spam_counter[user_id] += 1
-
-    if spam_counter[user_id] > 5:
-        await mute_user(message, "Spam detected")
-        spam_counter[user_id] = 0
-        return
-
-    # Premium bad words
+    # Supprimer le message si c'est un mot banni (premium)
     if is_premium(guild.id):
         bad_words = premium_bad_words.get(guild.id, [])
         if any(word in content for word in bad_words):
-            await mute_user(message, "Used banned word")
+            await message.delete()
+            await progressive_mute(member, guild)
             return
 
     await bot.process_commands(message)
 
-# Fonction pour mute un utilisateur
-async def mute_user(message, reason):
-    guild = message.guild
-    member = message.author
+async def progressive_mute(member, guild):
+    user_id = member.id
+    infractions.setdefault(user_id, 0)
+    idx = min(infractions[user_id], len(MUTE_DURATIONS)-1)
+    duration = MUTE_DURATIONS[idx]
+    infractions[user_id] += 1
 
     muted_role = discord.utils.get(guild.roles, name="Muted")
     if not muted_role:
@@ -75,30 +67,32 @@ async def mute_user(message, reason):
             )
 
     await member.add_roles(muted_role)
-    await message.channel.send(
-        f"🔇 {member.mention} has been muted ({reason})."
-    )
+    await member.send(f"🔇 You have been muted for {duration} seconds due to banned words.")
+    
+    await asyncio.sleep(duration)
 
-# Commande pour ajouter un mot interdit (admins only)
+    # Vérifie si le membre a encore le rôle (pas supprimé manuellement)
+    if muted_role in member.roles:
+        await member.remove_roles(muted_role)
+        await member.send("✅ You have been unmuted.")
+
+# Commandes addword et removeword pour admins
 @bot.command()
 @commands.has_permissions(administrator=True)
 async def addword(ctx, *, word):
     if not is_premium(ctx.guild.id):
         await ctx.send("❌ This feature is premium only.")
         return
-
     premium_bad_words.setdefault(ctx.guild.id, [])
     premium_bad_words[ctx.guild.id].append(word.lower())
     await ctx.send(f"✅ Added `{word}` to banned words.")
 
-# Commande pour supprimer un mot interdit (admins only)
 @bot.command()
 @commands.has_permissions(administrator=True)
 async def removeword(ctx, *, word):
     if not is_premium(ctx.guild.id):
         await ctx.send("❌ This feature is premium only.")
         return
-
     bad_words = premium_bad_words.get(ctx.guild.id, [])
     if word.lower() in bad_words:
         bad_words.remove(word.lower())
@@ -106,5 +100,4 @@ async def removeword(ctx, *, word):
     else:
         await ctx.send(f"❌ `{word}` is not in the banned words list.")
 
-# Démarrage du bot avec le token sécurisé
 bot.run(os.getenv("DISCORD_TOKEN"))
