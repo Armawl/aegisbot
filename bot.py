@@ -8,10 +8,17 @@ intents.members = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
+# Liste des serveurs premium (mettre l'ID des serveurs qui paient)
 PREMIUM_SERVERS = [
-    # example: 123456789012345678
+    # 123456789012345678
 ]
 
+# Dictionnaire des mots interdits premium
+premium_bad_words = {
+    # server_id: ["badword1", "badword2"]
+}
+
+# Spam tracking
 spam_counter = {}
 
 def is_premium(server_id):
@@ -40,6 +47,13 @@ async def on_message(message):
         spam_counter[user_id] = 0
         return
 
+    # Premium bad words
+    if is_premium(guild.id):
+        bad_words = premium_bad_words.get(guild.id, [])
+        if any(word in content for word in bad_words):
+            await mute_user(message, "Used banned word")
+            return
+
     await bot.process_commands(message)
 
 async def mute_user(message, reason):
@@ -60,5 +74,16 @@ async def mute_user(message, reason):
     await message.channel.send(
         f"🔇 {member.mention} has been muted ({reason})."
     )
+
+# Command to add premium bad words
+@bot.command()
+async def addword(ctx, *, word):
+    if not is_premium(ctx.guild.id):
+        await ctx.send("❌ This feature is premium only.")
+        return
+
+    premium_bad_words.setdefault(ctx.guild.id, [])
+    premium_bad_words[ctx.guild.id].append(word.lower())
+    await ctx.send(f"✅ Added `{word}` to banned words.")
 
 bot.run(os.getenv("DISCORD_TOKEN"))
