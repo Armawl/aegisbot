@@ -9,15 +9,13 @@ intents.members = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Liste des serveurs premium
+# Serveur premium
 PREMIUM_SERVERS = [
-    1455308297770107055# 123456789012345678
+    1455308297770107055
 ]
 
 # Dictionnaire des mots interdits premium
-premium_bad_words = {
-    # server_id: ["badword1", "badword2"]
-}
+premium_bad_words = {}
 
 # Dictionnaire pour suivre les infractions par membre
 infractions = {}
@@ -41,7 +39,7 @@ async def on_message(message):
     member = message.author
     content = message.content.lower()
 
-    # Supprimer le message si mot banni
+    # Supprimer le message si mot banni (premium)
     if is_premium(guild.id):
         bad_words = premium_bad_words.get(guild.id, [])
         if any(word in content for word in bad_words):
@@ -80,7 +78,7 @@ async def progressive_mute(member, guild):
     try:
         await member.send(f"You have been muted for {duration} seconds due to banned words.")
     except:
-        pass  # si DM fermé
+        pass
 
     await asyncio.sleep(duration)
 
@@ -91,23 +89,26 @@ async def progressive_mute(member, guild):
         except:
             pass
 
-# Commandes admin pour ajouter/supprimer mots interdits
+# Commande pour ajouter un mot banni (admin only)
 @bot.command()
 @commands.has_permissions(administrator=True)
 async def addword(ctx, *, word):
     if not is_premium(ctx.guild.id):
         await ctx.send("❌ This feature is premium only.")
         return
+
     premium_bad_words.setdefault(ctx.guild.id, [])
     premium_bad_words[ctx.guild.id].append(word.lower())
     await ctx.send(f"✅ Added `{word}` to banned words.")
 
+# Commande pour supprimer un mot banni (admin only)
 @bot.command()
 @commands.has_permissions(administrator=True)
 async def removeword(ctx, *, word):
     if not is_premium(ctx.guild.id):
         await ctx.send("❌ This feature is premium only.")
         return
+
     bad_words = premium_bad_words.get(ctx.guild.id, [])
     if word.lower() in bad_words:
         bad_words.remove(word.lower())
@@ -116,4 +117,3 @@ async def removeword(ctx, *, word):
         await ctx.send(f"❌ `{word}` is not in the banned words list.")
 
 bot.run(os.getenv("DISCORD_TOKEN"))
-        
