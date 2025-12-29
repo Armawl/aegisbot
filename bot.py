@@ -10,7 +10,7 @@ intents.members = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 PREMIUM_SERVERS = [
-    123456789012345678  # ton server ID ici
+    1455308297770107055  # ton server ID ici
 ]
 
 # Dictionnaire des mots interdits premium
