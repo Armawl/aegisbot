@@ -11,7 +11,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 # Liste des serveurs premium
 PREMIUM_SERVERS = [
-    # 123456789012345678
+    1455308297770107055# 123456789012345678
 ]
 
 # Dictionnaire des mots interdits premium
