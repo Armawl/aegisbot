@@ -60,5 +60,7 @@ async def mute_user(message, reason):
     await message.channel.send(
         f"🔇 {member.mention} has been muted ({reason})."
     )
-
+@bot.command()
+async def ping(ctx):
+    await ctx.send("Pong! ✅")
 bot.run(os.getenv("DISCORD_TOKEN"))
