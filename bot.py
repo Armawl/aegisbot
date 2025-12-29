@@ -85,4 +85,17 @@ async def addword(ctx, *, word):
     premium_bad_words.setdefault(ctx.guild.id, [])
     premium_bad_words[ctx.guild.id].append(word.lower())
     await ctx.send(f"✅ Added `{word}` to banned words.")
+    @bot.command()
+@commands.has_permissions(administrator=True)
+async def removeword(ctx, *, word):
+    if not is_premium(ctx.guild.id):
+        await ctx.send("❌ This feature is premium only.")
+        return
+
+    bad_words = premium_bad_words.get(ctx.guild.id, [])
+    if word.lower() in bad_words:
+        bad_words.remove(word.lower())
+        await ctx.send(f"✅ Removed `{word}` from banned words.")
+    else:
+        await ctx.send(f"❌ `{word}` is not in the banned words list.")
 bot.run(os.getenv("DISCORD_TOKEN"))
