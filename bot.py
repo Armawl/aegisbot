@@ -75,8 +75,8 @@ async def mute_user(message, reason):
         f"🔇 {member.mention} has been muted ({reason})."
     )
 
-# Command to add premium bad words
 @bot.command()
+@commands.has_permissions(administrator=True)
 async def addword(ctx, *, word):
     if not is_premium(ctx.guild.id):
         await ctx.send("❌ This feature is premium only.")
@@ -85,5 +85,4 @@ async def addword(ctx, *, word):
     premium_bad_words.setdefault(ctx.guild.id, [])
     premium_bad_words[ctx.guild.id].append(word.lower())
     await ctx.send(f"✅ Added `{word}` to banned words.")
-
 bot.run(os.getenv("DISCORD_TOKEN"))
